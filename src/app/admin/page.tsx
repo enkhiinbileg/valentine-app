@@ -392,9 +392,33 @@ export default function AdminPage() {
                                     <UserProfileDetails userProfile={userProfile} userCards={userCards} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} loading={loading} />
                                 ) : (
                                     <div className="grid gap-4">
-                                        <h3 className="text-lg font-black text-rose-950 mb-2">Сүүлийн хэрэглэгчид</h3>
+                                        <div className="flex items-baseline justify-between mb-2">
+                                            <h3 className="text-lg font-black text-rose-950 uppercase tracking-tighter">Сүүлийн хэрэглэгчид</h3>
+                                            <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest">Нийт {recentUsers.length}</p>
+                                        </div>
                                         {recentUsers.map(user => (
-                                            <UserRow key={user.id} user={user} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} />
+                                            <UserRow
+                                                key={user.id}
+                                                user={user}
+                                                togglePaidStatus={togglePaidStatus}
+                                                grantVipStatus={grantVipStatus}
+                                                onSelect={async (u) => {
+                                                    setSearchId(u.short_id || u.email);
+                                                    // Trigger a manual search-like action
+                                                    setLoading(true);
+                                                    try {
+                                                        setUserProfile(u);
+                                                        const { data: cards } = await supabase
+                                                            .from('cards')
+                                                            .select('id, partner_name, view_count, created_at')
+                                                            .eq('user_id', u.id)
+                                                            .order('created_at', { ascending: false });
+                                                        setUserCards(cards || []);
+                                                    } finally {
+                                                        setLoading(false);
+                                                    }
+                                                }}
+                                            />
                                         ))}
                                     </div>
                                 )}
@@ -483,7 +507,28 @@ function RecentUsersSection({ users, togglePaidStatus, grantVipStatus }: { users
             </h3>
             <div className="space-y-4">
                 {users.map(user => (
-                    <UserRow key={user.id} user={user} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} />
+                    <UserRow
+                        key={user.id}
+                        user={user}
+                        togglePaidStatus={togglePaidStatus}
+                        grantVipStatus={grantVipStatus}
+                        onSelect={async (u) => {
+                            setActiveTab('users');
+                            setSearchId(u.short_id || u.email);
+                            setLoading(true);
+                            try {
+                                setUserProfile(u);
+                                const { data: cards } = await supabase
+                                    .from('cards')
+                                    .select('id, partner_name, view_count, created_at')
+                                    .eq('user_id', u.id)
+                                    .order('created_at', { ascending: false });
+                                setUserCards(cards || []);
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                    />
                 ))}
             </div>
         </div>
@@ -518,35 +563,41 @@ function PendingPaymentsSection({ users, confirmPayment, onManage }: { users: an
     );
 }
 
-function UserRow({ user, togglePaidStatus, grantVipStatus }: { user: any, togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void }) {
+function UserRow({ user, togglePaidStatus, grantVipStatus, onSelect }: { user: any, togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void, onSelect: (u: any) => void }) {
     return (
-        <div className="flex items-center justify-between p-4 bg-rose-50/50 rounded-2xl border border-rose-100 hover:border-rose-300 transition-all">
-            <div className="flex items-center gap-4 flex-1">
+        <div className="flex items-center justify-between p-4 bg-rose-50/50 rounded-2xl border border-rose-100 hover:border-rose-300 transition-all group">
+            <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => onSelect(user)}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${user.is_paid ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-400'}`}>
                     {user.is_paid ? <UserCheck className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
                 </div>
                 <div className="min-w-0">
-                    <p className="text-sm font-black text-rose-950 uppercase tracking-tight truncate">{user.email?.split('@')[0]}</p>
+                    <p className="text-sm font-black text-rose-950 uppercase tracking-tight truncate group-hover:text-rose-600 transition-colors">{user.email?.split('@')[0]}</p>
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-rose-100 font-black text-rose-600 font-mono tracking-widest leading-none">ID: {user.short_id || 'N/A'}</span>
                         {user.package_type && user.package_type !== 'none' && (
-                            <span className="text-[9px] bg-indigo-50 text-indigo-500 px-1 py-0.5 rounded font-black uppercase">{user.package_type}</span>
+                            <span className="text-[9px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md font-black uppercase tracking-tighter">{user.package_type}</span>
                         )}
                     </div>
                 </div>
             </div>
             <div className="flex items-center gap-2">
                 <button
-                    onClick={() => grantVipStatus(user.id)}
-                    title="Grant Diamond VIP"
-                    disabled={user.package_type === 'diamond'}
-                    className={`p-2 rounded-xl transition-all ${user.package_type === 'diamond' ? 'text-indigo-500 bg-indigo-50' : 'text-rose-400 hover:bg-rose-100'}`}
+                    onClick={() => onSelect(user)}
+                    className="hidden md:flex px-3 py-1.5 bg-white text-rose-500 rounded-xl text-[9px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                 >
-                    <Sparkles className="w-4 h-4" />
+                    Дэлгэрэнгүй
                 </button>
                 <button
-                    onClick={() => togglePaidStatus(user.id, user.is_paid)}
-                    className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${user.is_paid ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-rose-500 border border-rose-100'}`}
+                    onClick={(e) => { e.stopPropagation(); grantVipStatus(user.id); }}
+                    title="Grant Diamond VIP"
+                    disabled={user.package_type === 'diamond'}
+                    className={`p-2 rounded-xl transition-all ${user.package_type === 'diamond' ? 'text-indigo-500 bg-indigo-50' : 'text-rose-400 hover:bg-rose-100 hover:scale-110'}`}
+                >
+                    <Sparkles className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); togglePaidStatus(user.id, user.is_paid); }}
+                    className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${user.is_paid ? 'bg-green-500 text-white shadow-md hover:bg-green-600' : 'bg-white text-rose-500 border border-rose-100 hover:bg-rose-50'}`}
                 >
                     {user.is_paid ? 'Active' : 'Locked'}
                 </button>
