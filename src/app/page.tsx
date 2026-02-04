@@ -23,13 +23,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Check initial user
+    // Check initial user and handle hash-based login
     const checkUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUser(user);
-          const userProfile = await getProfile(user.id);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          const userProfile = await getProfile(session.user.id);
           setProfile(userProfile);
         }
       } catch (error) {
@@ -38,12 +38,15 @@ export default function Home() {
         setLoadingAuth(false);
       }
     };
+
     checkUser();
 
-    // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Listen for changes (This will catch the login event from the URL hash)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth Event:", event);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+
       if (currentUser) {
         const userProfile = await getProfile(currentUser.id);
         setProfile(userProfile);
