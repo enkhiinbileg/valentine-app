@@ -23,83 +23,25 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log("Home component mounted, checking auth...");
-
-    const checkInitialSession = async (retryCount = 0) => {
-      console.warn(`--- AUTH ATTEMPT ${retryCount + 1} START ---`);
-
-      // Get the full URL and manually look for the hash part
-      const fullUrl = window.location.href;
-      const hashPart = fullUrl.split('#')[1] || "";
-
-      console.warn("Full URL present:", fullUrl.includes('#access_token') ? "YES" : "NO");
-      console.warn("Extracted hash part length:", hashPart.length);
-
+    const checkInitialSession = async () => {
       try {
-        // 1. Check existing session
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (session) {
-          console.warn("AUTO-SESSION SUCCESS for:", session.user.email);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
           setUser(session.user);
           const userProfile = await getProfile(session.user.id);
           setProfile(userProfile);
-          setLoadingAuth(false);
-          return;
         }
-
-        // 2. Manual parsing fallback
-        if (hashPart.includes('access_token')) {
-          console.warn("MANUAL TOKEN DETECTED in URL string. Parsing...");
-          const params = new URLSearchParams(hashPart);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-
-          if (accessToken) {
-            console.warn("Setting session manually...");
-            const { data: { session: newSession }, error: setErr } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-
-            if (newSession) {
-              console.warn("MANUAL SESSION SUCCESS!");
-              setUser(newSession.user);
-              const userProfile = await getProfile(newSession.user.id);
-              setProfile(userProfile);
-              window.history.replaceState(null, '', window.location.pathname);
-              setLoadingAuth(false);
-              return;
-            } else if (setErr) {
-              console.error("SET SESSION ERROR:", setErr.message);
-            }
-          }
-        }
-
-        // 3. Retry logic (sometimes URL parsing/detection is deferred)
-        if (!session && retryCount < 2) {
-          console.warn("No session yet, retrying in 500ms...");
-          setTimeout(() => checkInitialSession(retryCount + 1), 500);
-          return;
-        }
-
-        console.warn("Final status: No session found.");
-      } catch (e: any) {
-        console.error("Auth Exception:", e.message || e);
+      } catch (err) {
+        console.error("Auth initialization error:", err);
       } finally {
-        if (retryCount >= 2 || (user && profile)) {
-          setLoadingAuth(false);
-          console.warn("--- AUTH ATTEMPT FINISHED ---");
-        }
+        setLoadingAuth(false);
       }
     };
 
     checkInitialSession();
 
-    // Listen for changes (This will catch the login event from the URL hash)
+    // Listen for changes (This will catch the login event synced by cookies)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Supabase Auth Event:", event, session?.user?.email);
-
       if (session?.user) {
         setUser(session.user);
         const userProfile = await getProfile(session.user.id);
