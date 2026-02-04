@@ -26,64 +26,48 @@ export default function Home() {
     console.log("Home component mounted, checking auth...");
 
     const checkInitialSession = async () => {
-      console.log("--- Auth Check Start ---");
-      console.log("Window Hash Length:", window.location.hash.length);
-      if (window.location.hash) console.log("Hash excerpt:", window.location.hash.substring(0, 30) + "...");
+      console.warn("--- AUTH DEBUG START ---");
+      const currentHash = window.location.hash;
+      console.warn("Current Hash excerpt:", currentHash.substring(0, 30));
 
       try {
-        // 1. Standard Session Check
+        // 1. Check existing session
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("Supabase getSession Error:", error.message);
-          throw error;
-        }
-
-        console.log("Initial session status:", session ? "Found" : "Not Found");
-
-        // 2. Fragment Parsing Fallback
-        if (!session && window.location.hash.includes('access_token')) {
-          console.log("Access token found in hash. Attempting manual session set...");
-
-          const hash = window.location.hash.substring(1);
-          const params = new URLSearchParams(hash);
+        if (session) {
+          console.warn("Session found automatically for:", session.user.email);
+          setUser(session.user);
+          const userProfile = await getProfile(session.user.id);
+          setProfile(userProfile);
+        } else if (currentHash.includes('access_token')) {
+          // 2. Manual fallback
+          console.warn("No session but access_token in hash. Manually setting...");
+          const params = new URLSearchParams(currentHash.substring(1));
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
 
           if (accessToken) {
-            console.log("Token extracted. Calling setSession...");
             const { data: { session: newSession }, error: setErr } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
-
-            if (setErr) {
-              console.error("setSession Error:", setErr.message);
-            } else if (newSession) {
-              console.log("Manual session set SUCCESS for:", newSession.user.email);
+            if (newSession) {
+              console.warn("Manual login SUCCESS!");
               setUser(newSession.user);
               const userProfile = await getProfile(newSession.user.id);
               setProfile(userProfile);
               window.history.replaceState(null, '', window.location.pathname);
-              return;
+            } else if (setErr) {
+              console.error("Manual login FAILED:", setErr.message);
             }
-          } else {
-            console.warn("Found access_token key but value was empty in hash.");
           }
-        }
-
-        if (session?.user) {
-          console.log("Session verified for:", session.user.email);
-          setUser(session.user);
-          const userProfile = await getProfile(session.user.id);
-          setProfile(userProfile);
         } else {
-          console.log("No user session identified.");
+          console.warn("No session and no token in URL.");
         }
-      } catch (err: any) {
-        console.error("Critical Auth Check Failed:", err.message || err);
+      } catch (e: any) {
+        console.error("Auth Exception:", e.message || e);
       } finally {
         setLoadingAuth(false);
-        console.log("--- Auth Check End ---");
+        console.warn("--- AUTH DEBUG END ---");
       }
     };
 
