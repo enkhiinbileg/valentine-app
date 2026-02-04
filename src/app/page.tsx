@@ -27,8 +27,33 @@ export default function Home() {
 
     const checkInitialSession = async () => {
       try {
+        // 1. First try standard getSession()
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
+
+        // 2. Fallback: If no session but there is a hash in the URL, manually set it
+        if (!session && window.location.hash.includes('access_token')) {
+          console.log("Found access_token in hash, attempting manual session set...");
+          const hash = window.location.hash.substring(1);
+          const params = new URLSearchParams(hash);
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+
+          if (access_token && refresh_token) {
+            const { data: { session: newSession }, error: setErr } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            if (!setErr && newSession) {
+              console.log("Manual session set successful:", newSession.user.email);
+              setUser(newSession.user);
+              const userProfile = await getProfile(newSession.user.id);
+              setProfile(userProfile);
+              window.history.replaceState(null, '', window.location.pathname);
+              return;
+            }
+          }
+        }
 
         if (session?.user) {
           console.log("Initial session found for:", session.user.email);
