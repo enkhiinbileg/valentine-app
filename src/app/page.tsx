@@ -26,47 +26,64 @@ export default function Home() {
     console.log("Home component mounted, checking auth...");
 
     const checkInitialSession = async () => {
-      try {
-        // 1. First try standard getSession()
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+      console.log("--- Auth Check Start ---");
+      console.log("Window Hash Length:", window.location.hash.length);
+      if (window.location.hash) console.log("Hash excerpt:", window.location.hash.substring(0, 30) + "...");
 
-        // 2. Fallback: If no session but there is a hash in the URL, manually set it
+      try {
+        // 1. Standard Session Check
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Supabase getSession Error:", error.message);
+          throw error;
+        }
+
+        console.log("Initial session status:", session ? "Found" : "Not Found");
+
+        // 2. Fragment Parsing Fallback
         if (!session && window.location.hash.includes('access_token')) {
-          console.log("Found access_token in hash, attempting manual session set...");
+          console.log("Access token found in hash. Attempting manual session set...");
+
           const hash = window.location.hash.substring(1);
           const params = new URLSearchParams(hash);
-          const access_token = params.get('access_token');
-          const refresh_token = params.get('refresh_token');
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
 
-          if (access_token && refresh_token) {
+          if (accessToken) {
+            console.log("Token extracted. Calling setSession...");
             const { data: { session: newSession }, error: setErr } = await supabase.auth.setSession({
-              access_token,
-              refresh_token,
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
             });
-            if (!setErr && newSession) {
-              console.log("Manual session set successful:", newSession.user.email);
+
+            if (setErr) {
+              console.error("setSession Error:", setErr.message);
+            } else if (newSession) {
+              console.log("Manual session set SUCCESS for:", newSession.user.email);
               setUser(newSession.user);
               const userProfile = await getProfile(newSession.user.id);
               setProfile(userProfile);
               window.history.replaceState(null, '', window.location.pathname);
               return;
             }
+          } else {
+            console.warn("Found access_token key but value was empty in hash.");
           }
         }
 
         if (session?.user) {
-          console.log("Initial session found for:", session.user.email);
+          console.log("Session verified for:", session.user.email);
           setUser(session.user);
           const userProfile = await getProfile(session.user.id);
           setProfile(userProfile);
         } else {
-          console.log("No initial session found.");
+          console.log("No user session identified.");
         }
-      } catch (err) {
-        console.error("Error checking initial session:", err);
+      } catch (err: any) {
+        console.error("Critical Auth Check Failed:", err.message || err);
       } finally {
         setLoadingAuth(false);
+        console.log("--- Auth Check End ---");
       }
     };
 
