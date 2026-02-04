@@ -69,20 +69,28 @@ export default function AdminPage() {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!searchId) return;
+        const term = searchId.trim();
+        if (!term) return;
 
         setLoading(true);
         setError('');
         setUserProfile(null);
 
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .or(`id.eq.${searchId},short_id.eq.${searchId},email.eq.${searchId}`)
-                .single();
+            // Determine if it looks like a UUID
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term);
 
-            if (error) throw new Error('Хэрэглэгч олдсонгүй');
+            let query = supabase.from('profiles').select('*');
+
+            if (isUuid) {
+                query = query.or(`id.eq.${term},short_id.eq.${term},email.ilike.%${term}%`);
+            } else {
+                query = query.or(`short_id.eq.${term},email.ilike.%${term}%`);
+            }
+
+            const { data, error } = await query.single();
+
+            if (error || !data) throw new Error('Хэрэглэгч олдсонгүй');
             setUserProfile(data);
 
             const { data: cards } = await supabase
