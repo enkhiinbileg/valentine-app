@@ -14,9 +14,22 @@ export async function getR2UploadUrlAction(fileName: string, contentType: string
 }
 
 export async function createCardAction(cardPayload: any, memoriesPayload: any[]) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+    if (!supabaseUrl) {
+        throw new Error("Server configuration error: NEXT_PUBLIC_SUPABASE_URL is missing");
+    }
+
+    // Prefer service role key for server-side actions, fallback to anon key
+    const supabaseKey = serviceKey || anonKey;
+
+    if (!supabaseKey) {
+        throw new Error("Server configuration error: Supabase API keys are missing");
+    }
+
+    console.log(`Using ${serviceKey ? 'Service Role' : 'Anon'} key for card creation`);
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
