@@ -6,7 +6,7 @@ import {
     Search, UserCheck, UserX, Loader2, ShieldCheck,
     Mail, Calendar, Hash, Sparkles, Check, Lock,
     Copy, LayoutDashboard, CreditCard, Image as ImageIcon,
-    Users, TrendingUp, ChevronRight, LogOut, ArrowLeft
+    Users, TrendingUp, ChevronRight, LogOut, ArrowLeft, Home
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -231,17 +231,35 @@ export default function AdminPage() {
         <div className="flex min-h-screen bg-[#FFF4F6]">
             {/* Sidebar */}
             <aside className="w-80 bg-white border-r border-rose-100 flex flex-col p-6 fixed h-full z-20 overflow-y-auto">
-                <div className="flex items-center gap-4 mb-12 px-2">
-                    <div className="p-3 bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl shadow-lg shadow-rose-200 text-white">
-                        <ShieldCheck className="w-7 h-7" />
+                <div className="flex items-center justify-between mb-12 px-2">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl shadow-lg shadow-rose-200 text-white">
+                            <ShieldCheck className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-rose-950 tracking-tighter">VALENTINE</h2>
+                            <span className="text-[10px] font-black uppercase text-rose-400 tracking-widest leading-none">Admin Dashboard</span>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-black text-rose-950 tracking-tighter">VALENTINE</h2>
-                        <span className="text-[10px] font-black uppercase text-rose-400 tracking-widest leading-none">Admin Dashboard</span>
-                    </div>
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="p-2 hover:bg-rose-50 rounded-xl text-rose-400 transition-colors"
+                        title="Нүүр хуудас руу буцах"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
                 </div>
 
                 <nav className="flex-1 space-y-2">
+                    <SidebarItem
+                        icon={<Home className="w-5 h-5" />}
+                        label="Буцах (Нүүр)"
+                        active={false}
+                        onClick={() => window.location.href = '/'}
+                    />
+                    <div className="py-2">
+                        <div className="h-px bg-rose-100/50 w-full" />
+                    </div>
                     <SidebarItem
                         icon={<LayoutDashboard className="w-5 h-5" />}
                         label="Dashboard Overview"
