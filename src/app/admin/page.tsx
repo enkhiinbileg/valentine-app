@@ -107,6 +107,23 @@ export default function AdminPage() {
         }
     };
 
+    const handleSelectUser = async (u: any) => {
+        setActiveTab('users');
+        setSearchId(u.short_id || u.email);
+        setLoading(true);
+        try {
+            setUserProfile(u);
+            const { data: cards } = await supabase
+                .from('cards')
+                .select('id, partner_name, view_count, created_at')
+                .eq('user_id', u.id)
+                .order('created_at', { ascending: false });
+            setUserCards(cards || []);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const togglePaidStatus = async (id: string, currentStatus: boolean) => {
         setLoading(true);
         const { error } = await supabase
@@ -338,7 +355,7 @@ export default function AdminPage() {
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                                <RecentUsersSection users={recentUsers} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} />
+                                <RecentUsersSection users={recentUsers} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} onSelectUser={handleSelectUser} />
                                 <PendingPaymentsSection users={pendingUsers} confirmPayment={confirmPayment} onManage={() => setActiveTab('payments')} />
                             </div>
                         </motion.div>
@@ -420,22 +437,7 @@ export default function AdminPage() {
                                                 user={user}
                                                 togglePaidStatus={togglePaidStatus}
                                                 grantVipStatus={grantVipStatus}
-                                                onSelect={async (u) => {
-                                                    setSearchId(u.short_id || u.email);
-                                                    // Trigger a manual search-like action
-                                                    setLoading(true);
-                                                    try {
-                                                        setUserProfile(u);
-                                                        const { data: cards } = await supabase
-                                                            .from('cards')
-                                                            .select('id, partner_name, view_count, created_at')
-                                                            .eq('user_id', u.id)
-                                                            .order('created_at', { ascending: false });
-                                                        setUserCards(cards || []);
-                                                    } finally {
-                                                        setLoading(false);
-                                                    }
-                                                }}
+                                                onSelect={handleSelectUser}
                                             />
                                         ))}
                                     </div>
@@ -517,7 +519,7 @@ function StatCard({ icon, label, value, trend, color = "bg-rose-500" }: { icon: 
     );
 }
 
-function RecentUsersSection({ users, togglePaidStatus, grantVipStatus }: { users: any[], togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void }) {
+function RecentUsersSection({ users, togglePaidStatus, grantVipStatus, onSelectUser }: { users: any[], togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void, onSelectUser: (u: any) => void }) {
     return (
         <div className="bg-white p-8 rounded-[3rem] border border-rose-100 shadow-xl shadow-rose-100/20">
             <h3 className="text-xl font-black text-rose-950 mb-8 flex items-center gap-3 uppercase tracking-tighter">
@@ -530,22 +532,7 @@ function RecentUsersSection({ users, togglePaidStatus, grantVipStatus }: { users
                         user={user}
                         togglePaidStatus={togglePaidStatus}
                         grantVipStatus={grantVipStatus}
-                        onSelect={async (u) => {
-                            setActiveTab('users');
-                            setSearchId(u.short_id || u.email);
-                            setLoading(true);
-                            try {
-                                setUserProfile(u);
-                                const { data: cards } = await supabase
-                                    .from('cards')
-                                    .select('id, partner_name, view_count, created_at')
-                                    .eq('user_id', u.id)
-                                    .order('created_at', { ascending: false });
-                                setUserCards(cards || []);
-                            } finally {
-                                setLoading(false);
-                            }
-                        }}
+                        onSelect={onSelectUser}
                     />
                 ))}
             </div>
