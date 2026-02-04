@@ -23,34 +23,40 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Check initial user and handle hash-based login
-    const checkUser = async () => {
+    console.log("Home component mounted, checking auth...");
+
+    const checkInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
         if (session?.user) {
+          console.log("Initial session found for:", session.user.email);
           setUser(session.user);
           const userProfile = await getProfile(session.user.id);
           setProfile(userProfile);
+        } else {
+          console.log("No initial session found.");
         }
-      } catch (error) {
-        console.error("Auth check failed:", error);
+      } catch (err) {
+        console.error("Error checking initial session:", err);
       } finally {
         setLoadingAuth(false);
       }
     };
 
-    checkUser();
+    checkInitialSession();
 
     // Listen for changes (This will catch the login event from the URL hash)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth Event:", event);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+      console.log("Supabase Auth Event:", event, session?.user?.email);
 
-      if (currentUser) {
-        const userProfile = await getProfile(currentUser.id);
+      if (session?.user) {
+        setUser(session.user);
+        const userProfile = await getProfile(session.user.id);
         setProfile(userProfile);
       } else {
+        setUser(null);
         setProfile(null);
       }
       setLoadingAuth(false);
