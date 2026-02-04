@@ -1,17 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-// Initialize Supabase Admin client to bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, // NOTE: In a real/prod app, use SERVICE_ROLE_KEY for admin rights
-    {
+// Initialize Supabase Admin client with safety checks
+const getSupabaseAdmin = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+        return null;
+    }
+
+    return createClient(url, key, {
         auth: {
             autoRefreshToken: false,
             persistSession: false
         }
-    }
-);
+    });
+};
 
 export async function POST(request: Request) {
     try {
@@ -33,6 +38,12 @@ export async function POST(request: Request) {
 
         // 2. Update Profile
         // We accept the payment and unlock the account
+        const supabaseAdmin = getSupabaseAdmin();
+        if (!supabaseAdmin) {
+            console.error('Supabase credentials missing');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+
         const { error } = await supabaseAdmin
             .from('profiles')
             .update({
