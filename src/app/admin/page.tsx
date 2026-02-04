@@ -118,6 +118,26 @@ export default function AdminPage() {
         setLoading(false);
     };
 
+    const grantVipStatus = async (id: string) => {
+        setLoading(true);
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                is_paid: true,
+                payment_status: 'paid',
+                package_type: 'diamond'
+            })
+            .eq('id', id);
+
+        if (!error) {
+            if (userProfile && userProfile.id === id) {
+                setUserProfile({ ...userProfile, is_paid: true, payment_status: 'paid', package_type: 'diamond' });
+            }
+            fetchRecentUsers();
+        }
+        setLoading(false);
+    };
+
     const confirmPayment = async (uProfile: any) => {
         setLoading(true);
         const { error } = await supabase
@@ -361,7 +381,7 @@ export default function AdminPage() {
                                 {error && <p className="text-rose-500 font-bold mb-6 px-4 bg-rose-50 py-3 rounded-2xl border border-rose-100 text-sm">⚠️ {error}</p>}
 
                                 {userProfile ? (
-                                    <UserProfileDetails userProfile={userProfile} userCards={userCards} togglePaidStatus={togglePaidStatus} loading={loading} />
+                                    <UserProfileDetails userProfile={userProfile} userCards={userCards} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} loading={loading} />
                                 ) : (
                                     <div className="grid gap-4">
                                         <h3 className="text-lg font-black text-rose-950 mb-2">Сүүлийн хэрэглэгчид</h3>
@@ -413,8 +433,8 @@ function SidebarItem({ icon, label, count, active, onClick }: { icon: React.Reac
         <button
             onClick={onClick}
             className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group ${active
-                    ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-xl shadow-rose-200'
-                    : 'text-rose-800 hover:bg-rose-50'
+                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-xl shadow-rose-200'
+                : 'text-rose-800 hover:bg-rose-50'
                 }`}
         >
             <div className="flex items-center gap-3">
@@ -577,7 +597,7 @@ function ShowcaseCard({ item, onDelete }: { item: any, onDelete: (id: string) =>
     );
 }
 
-function UserProfileDetails({ userProfile, userCards, togglePaidStatus, loading }: { userProfile: any, userCards: any[], togglePaidStatus: (id: string, s: boolean) => void, loading: boolean }) {
+function UserProfileDetails({ userProfile, userCards, togglePaidStatus, grantVipStatus, loading }: { userProfile: any, userCards: any[], togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void, loading: boolean }) {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 bg-[#FDF1F3] rounded-[2.5rem] border border-rose-100">
             <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10">
@@ -588,9 +608,27 @@ function UserProfileDetails({ userProfile, userCards, togglePaidStatus, loading 
                         <p className="text-rose-400 font-bold font-mono tracking-widest text-sm uppercase">{userProfile.short_id}</p>
                     </div>
                 </div>
-                <button onClick={() => togglePaidStatus(userProfile.id, userProfile.is_paid)} disabled={loading} className={`px-10 py-5 rounded-[1.5rem] font-black shadow-xl transform hover:scale-105 active:scale-95 transition-all ${userProfile.is_paid ? 'bg-white text-rose-500 border border-rose-100' : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white'}`}>
-                    {userProfile.is_paid ? 'ЭРХИЙГ ХААХ' : 'ЭРХИЙГ НЭЭХ'}
-                </button>
+                <div className="flex flex-wrap gap-3 justify-center">
+                    <button
+                        onClick={() => grantVipStatus(userProfile.id)}
+                        disabled={loading || userProfile.package_type === 'diamond'}
+                        className={`px-8 py-5 rounded-[1.5rem] font-black shadow-xl transform hover:scale-105 active:scale-95 transition-all flex items-center gap-2 ${userProfile.package_type === 'diamond'
+                            ? 'bg-indigo-500 text-white cursor-default'
+                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-indigo-200'
+                            }`}
+                    >
+                        <Sparkles className="w-5 h-5" />
+                        {userProfile.package_type === 'diamond' ? 'DIAMOND VIP' : 'GRANT DIAMOND'}
+                    </button>
+                    <button
+                        onClick={() => togglePaidStatus(userProfile.id, userProfile.is_paid)}
+                        disabled={loading}
+                        className={`px-10 py-5 rounded-[1.5rem] font-black shadow-xl transform hover:scale-105 active:scale-95 transition-all ${userProfile.is_paid ? 'bg-white text-rose-500 border border-rose-100' : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white'
+                            }`}
+                    >
+                        {userProfile.is_paid ? 'ЭРХИЙГ ХААХ' : 'ЭРХИЙГ НЭЭХ'}
+                    </button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailBox label="И-Мэйл" value={userProfile.email} icon={<Mail className="w-4 h-4 text-rose-300" />} />
