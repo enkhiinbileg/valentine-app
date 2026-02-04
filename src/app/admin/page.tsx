@@ -312,7 +312,7 @@ export default function AdminPage() {
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                                <RecentUsersSection users={recentUsers} togglePaidStatus={togglePaidStatus} />
+                                <RecentUsersSection users={recentUsers} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} />
                                 <PendingPaymentsSection users={pendingUsers} confirmPayment={confirmPayment} onManage={() => setActiveTab('payments')} />
                             </div>
                         </motion.div>
@@ -386,7 +386,7 @@ export default function AdminPage() {
                                     <div className="grid gap-4">
                                         <h3 className="text-lg font-black text-rose-950 mb-2">Сүүлийн хэрэглэгчид</h3>
                                         {recentUsers.map(user => (
-                                            <UserRow key={user.id} user={user} togglePaidStatus={togglePaidStatus} />
+                                            <UserRow key={user.id} user={user} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} />
                                         ))}
                                     </div>
                                 )}
@@ -467,7 +467,7 @@ function StatCard({ icon, label, value, trend, color = "bg-rose-500" }: { icon: 
     );
 }
 
-function RecentUsersSection({ users, togglePaidStatus }: { users: any[], togglePaidStatus: (id: string, s: boolean) => void }) {
+function RecentUsersSection({ users, togglePaidStatus, grantVipStatus }: { users: any[], togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void }) {
     return (
         <div className="bg-white p-8 rounded-[3rem] border border-rose-100 shadow-xl shadow-rose-100/20">
             <h3 className="text-xl font-black text-rose-950 mb-8 flex items-center gap-3 uppercase tracking-tighter">
@@ -475,7 +475,7 @@ function RecentUsersSection({ users, togglePaidStatus }: { users: any[], toggleP
             </h3>
             <div className="space-y-4">
                 {users.map(user => (
-                    <UserRow key={user.id} user={user} togglePaidStatus={togglePaidStatus} />
+                    <UserRow key={user.id} user={user} togglePaidStatus={togglePaidStatus} grantVipStatus={grantVipStatus} />
                 ))}
             </div>
         </div>
@@ -510,21 +510,39 @@ function PendingPaymentsSection({ users, confirmPayment, onManage }: { users: an
     );
 }
 
-function UserRow({ user, togglePaidStatus }: { user: any, togglePaidStatus: (id: string, s: boolean) => void }) {
+function UserRow({ user, togglePaidStatus, grantVipStatus }: { user: any, togglePaidStatus: (id: string, s: boolean) => void, grantVipStatus: (id: string) => void }) {
     return (
-        <div className="flex items-center justify-between p-4 bg-rose-50/50 rounded-2xl border border-rose-100">
-            <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${user.is_paid ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-400'}`}>
+        <div className="flex items-center justify-between p-4 bg-rose-50/50 rounded-2xl border border-rose-100 hover:border-rose-300 transition-all">
+            <div className="flex items-center gap-4 flex-1">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${user.is_paid ? 'bg-green-100 text-green-600' : 'bg-rose-100 text-rose-400'}`}>
                     {user.is_paid ? <UserCheck className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
                 </div>
-                <div>
-                    <p className="text-sm font-black text-rose-950 uppercase tracking-tight truncate max-w-[120px]">{user.email?.split('@')[0]}</p>
-                    <p className="text-[10px] text-rose-400 font-mono tracking-widest">{user.short_id}</p>
+                <div className="min-w-0">
+                    <p className="text-sm font-black text-rose-950 uppercase tracking-tight truncate">{user.email?.split('@')[0]}</p>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-rose-100 font-black text-rose-600 font-mono tracking-widest leading-none">ID: {user.short_id || 'N/A'}</span>
+                        {user.package_type && user.package_type !== 'none' && (
+                            <span className="text-[9px] bg-indigo-50 text-indigo-500 px-1 py-0.5 rounded font-black uppercase">{user.package_type}</span>
+                        )}
+                    </div>
                 </div>
             </div>
-            <button onClick={() => togglePaidStatus(user.id, user.is_paid)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${user.is_paid ? 'bg-green-500 text-white' : 'bg-white text-rose-500 border border-rose-100'}`}>
-                {user.is_paid ? 'Active' : 'Locked'}
-            </button>
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => grantVipStatus(user.id)}
+                    title="Grant Diamond VIP"
+                    disabled={user.package_type === 'diamond'}
+                    className={`p-2 rounded-xl transition-all ${user.package_type === 'diamond' ? 'text-indigo-500 bg-indigo-50' : 'text-rose-400 hover:bg-rose-100'}`}
+                >
+                    <Sparkles className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={() => togglePaidStatus(user.id, user.is_paid)}
+                    className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${user.is_paid ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-rose-500 border border-rose-100'}`}
+                >
+                    {user.is_paid ? 'Active' : 'Locked'}
+                </button>
+            </div>
         </div>
     );
 }
@@ -538,8 +556,8 @@ function PaymentRow({ user, confirmPayment }: { user: any, confirmPayment: (u: a
                     <h3 className="font-black text-rose-950 text-xl tracking-tight uppercase">{user.email?.split('@')[0]}</h3>
                     <span className="bg-rose-200 text-rose-700 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest">{user.package_type}</span>
                 </div>
-                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-rose-400 font-bold text-xs uppercase tracking-widest font-mono">
-                    <span>{user.short_id}</span>
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2">
+                    <span className="bg-white px-3 py-1 rounded-lg border border-rose-100 text-rose-600 font-black font-mono tracking-widest text-xs">ID: {user.short_id}</span>
                 </div>
             </div>
             <button onClick={() => confirmPayment(user)} className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-2xl font-black shadow-xl">ШУУД НЭЭХ</button>
