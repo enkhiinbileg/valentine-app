@@ -259,7 +259,13 @@ const CardGenerator = ({ onBack, user, profile, loadingAuth, refreshProfile }: {
                     <h2 className="text-3xl font-bold text-rose-900 mb-4">Нэвтрэх шаардлагатай</h2>
                     <p className="text-rose-700/70 mb-8">Карт үүсгэхийн тулд эхлээд Google-ээр нэвтэрнэ үү.</p>
                     <button
-                        onClick={signInWithGoogle}
+                        onClick={async () => {
+                            try {
+                                await signInWithGoogle();
+                            } catch (e) {
+                                console.error("CardGenerator Login Error:", e);
+                            }
+                        }}
                         className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold hover:bg-rose-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-200"
                     >
                         <LogIn className="w-5 h-5" /> Google-ээр нэвтрэх

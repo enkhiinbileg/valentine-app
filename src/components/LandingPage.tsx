@@ -68,7 +68,13 @@ const LandingPage = ({ onCreate, user, profile }: { onCreate: () => void, user: 
                     </div>
                 ) : (
                     <button
-                        onClick={signInWithGoogle}
+                        onClick={async () => {
+                            try {
+                                await signInWithGoogle();
+                            } catch (e) {
+                                console.error("LandingPage Login Error:", e);
+                            }
+                        }}
                         className="flex items-center gap-2 px-6 py-2 bg-white hover:bg-rose-50 text-rose-600 rounded-full font-bold text-sm shadow-sm border border-rose-100 transition-all"
                     >
                         <LogIn className="w-4 h-4" />

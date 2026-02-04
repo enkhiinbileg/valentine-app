@@ -3,15 +3,35 @@
 import { supabase } from "@/lib/supabase";
 
 export const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
-        },
-    });
+    try {
+        console.log("Starting Google Sign In...");
 
-    if (error) {
-        console.error("Error signing in with Google:", error.message);
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+            console.error("Supabase environment variables are missing!");
+            alert("Supabase тохиргоо дутуу байна (.env файл)");
+            return;
+        }
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+
+        if (error) {
+            console.error("Supabase OAuth Error:", error.message);
+            throw error;
+        }
+
+        console.log("OAuth sign in initiated:", data);
+    } catch (error: any) {
+        console.error("Critical Login Error:", error);
+        // If it's an AbortError, it might be a Next.js/Turbopack internally handled one
+        if (error.name === 'AbortError') {
+            console.warn("Login was aborted, but this might be expected during redirect.");
+            return;
+        }
         throw error;
     }
 };
