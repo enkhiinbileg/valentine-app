@@ -7,8 +7,18 @@ import { supabase } from '@/lib/supabase'
 const LandingPage = ({ onCreate, user, profile }: { onCreate: () => void, user: any, profile: any }) => {
     const [myCards, setMyCards] = useState<any[]>([]);
     const [copied, setCopied] = useState(false);
+    const [showcaseItems, setShowcaseItems] = useState<any[]>([]);
 
     useEffect(() => {
+        const fetchShowcase = async () => {
+            const { data } = await supabase
+                .from('showcase_items')
+                .select('*')
+                .order('display_order', { ascending: true });
+            if (data && data.length > 0) setShowcaseItems(data);
+        };
+        fetchShowcase();
+
         if (user) {
             // Fetch user's cards
             const fetchCards = async () => {
@@ -204,28 +214,44 @@ const LandingPage = ({ onCreate, user, profile }: { onCreate: () => void, user: 
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <TemplatePreviewCard
-                        image="/templates/classic.png"
-                        title="Classic Romantic"
-                        tag="Standard"
-                        desc="Уламжлалт улаан, ягаан өнгө болон зүрхэн анимациуд"
-                        delay={0.6}
-                    />
-                    <TemplatePreviewCard
-                        image="/templates/midnight.png"
-                        title="Starry Night"
-                        tag="Unlimited"
-                        desc="Шөнийн тэнгэр, одод болон нууцлаг гоёмсог эффектүүд"
-                        delay={0.8}
-                    />
-                    <TemplatePreviewCard
-                        image="/templates/diamond.png"
-                        title="Diamond VIP"
-                        tag="VIP"
-                        desc="Кристал эффект, тансаг загвар болон тусгай анимаци"
-                        isPremium
-                        delay={1.0}
-                    />
+                    {showcaseItems.length > 0 ? (
+                        showcaseItems.map((item, index) => (
+                            <TemplatePreviewCard
+                                key={item.id}
+                                image={item.image_url}
+                                title={item.title}
+                                tag={item.tag}
+                                desc={item.description}
+                                isPremium={item.is_premium}
+                                delay={0.6 + index * 0.2}
+                            />
+                        ))
+                    ) : (
+                        <>
+                            <TemplatePreviewCard
+                                image="/templates/classic.png"
+                                title="Classic Romantic"
+                                tag="Standard"
+                                desc="Уламжлалт улаан, ягаан өнгө болон зүрхэн анимациуд"
+                                delay={0.6}
+                            />
+                            <TemplatePreviewCard
+                                image="/templates/midnight.png"
+                                title="Starry Night"
+                                tag="Unlimited"
+                                desc="Шөнийн тэнгэр, одод болон нууцлаг гоёмсог эффектүүд"
+                                delay={0.8}
+                            />
+                            <TemplatePreviewCard
+                                image="/templates/diamond.png"
+                                title="Diamond VIP"
+                                tag="VIP"
+                                desc="Кристал эффект, тансаг загвар болон тусгай анимаци"
+                                isPremium
+                                delay={1.0}
+                            />
+                        </>
+                    )}
                 </div>
             </section>
 

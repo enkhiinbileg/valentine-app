@@ -16,9 +16,15 @@ export default function AdminPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingAuth, setCheckingAuth] = useState(true);
 
+    // Showcase management state
+    const [showcaseItems, setShowcaseItems] = useState<any[]>([]);
+    const [newItem, setNewItem] = useState({ title: '', tag: '', description: '', image_url: '', is_premium: false });
+    const [showcaseLoading, setShowcaseLoading] = useState(false);
+
     useEffect(() => {
         checkAdmin();
         fetchRecentUsers();
+        fetchShowcaseItems();
     }, []);
 
     const checkAdmin = async () => {
@@ -128,6 +134,36 @@ export default function AdminPage() {
         setLoading(false);
     };
 
+    const fetchShowcaseItems = async () => {
+        const { data } = await supabase
+            .from('showcase_items')
+            .select('*')
+            .order('display_order', { ascending: true });
+        if (data) setShowcaseItems(data);
+    };
+
+    const handleAddShowcase = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setShowcaseLoading(true);
+        const { error } = await supabase
+            .from('showcase_items')
+            .insert([newItem]);
+
+        if (!error) {
+            setNewItem({ title: '', tag: '', description: '', image_url: '', is_premium: false });
+            fetchShowcaseItems();
+        }
+        setShowcaseLoading(false);
+    };
+
+    const handleDeleteShowcase = async (id: string) => {
+        const { error } = await supabase
+            .from('showcase_items')
+            .delete()
+            .eq('id', id);
+        if (!error) fetchShowcaseItems();
+    };
+
     if (checkingAuth) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-rose-50">
@@ -159,6 +195,87 @@ export default function AdminPage() {
                     <div>
                         <h1 className="romantic-text text-5xl text-rose-950">Админ Хяналт</h1>
                         <p className="text-rose-400 font-bold uppercase tracking-widest text-[10px] mt-1">Payment & User Management</p>
+                    </div>
+                </div>
+
+                {/* Showcase Management Section */}
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl shadow-rose-100 border border-white mb-12">
+                    <h2 className="text-2xl font-black text-rose-950 mb-8 flex items-center gap-3">
+                        <Sparkles className="w-8 h-8 text-rose-500" />
+                        Үзүүлэн удирдах
+                    </h2>
+
+                    <form onSubmit={handleAddShowcase} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                placeholder="Гарчиг (Classic Romantic...)"
+                                value={newItem.title}
+                                onChange={e => setNewItem({ ...newItem, title: e.target.value })}
+                                required
+                                className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none focus:ring-2 focus:ring-rose-200"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Таг (Standard / VIP / Unlimited)"
+                                value={newItem.tag}
+                                onChange={e => setNewItem({ ...newItem, tag: e.target.value })}
+                                className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none focus:ring-2 focus:ring-rose-200"
+                            />
+                            <textarea
+                                placeholder="Тайлбар..."
+                                value={newItem.description}
+                                onChange={e => setNewItem({ ...newItem, description: e.target.value })}
+                                className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none focus:ring-2 focus:ring-rose-200 min-h-[100px]"
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                placeholder="Зургийн линк (/templates/classic.png...)"
+                                value={newItem.image_url}
+                                onChange={e => setNewItem({ ...newItem, image_url: e.target.value })}
+                                required
+                                className="w-full px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl outline-none focus:ring-2 focus:ring-rose-200"
+                            />
+                            <label className="flex items-center gap-3 px-5 py-4 bg-rose-50/50 border border-rose-100 rounded-2xl cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={newItem.is_premium}
+                                    onChange={e => setNewItem({ ...newItem, is_premium: e.target.checked })}
+                                    className="w-5 h-5 accent-rose-500"
+                                />
+                                <span className="text-rose-900 font-bold">VIP загвар</span>
+                            </label>
+                            <button
+                                type="submit"
+                                disabled={showcaseLoading}
+                                className="w-full py-5 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-rose-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                {showcaseLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Sparkles className="w-5 h-5" /> Нэмэх</>}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {showcaseItems.map((item) => (
+                            <div key={item.id} className="relative group overflow-hidden bg-white rounded-3xl border border-rose-100 shadow-sm hover:shadow-xl transition-all">
+                                <img src={item.image_url} alt={item.title} className="w-full aspect-[4/5] object-cover" />
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="font-black text-rose-950 truncate">{item.title}</h3>
+                                        <span className="text-[10px] bg-rose-100 text-rose-500 px-2 py-1 rounded-full font-bold">{item.tag}</span>
+                                    </div>
+                                    <p className="text-xs text-rose-400 line-clamp-2">{item.description}</p>
+                                    <button
+                                        onClick={() => handleDeleteShowcase(item.id)}
+                                        className="mt-4 w-full py-2 bg-rose-50 text-rose-400 hover:bg-rose-100 hover:text-rose-600 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                                    >
+                                        <UserX className="w-4 h-4" /> Устгах
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
